@@ -38,6 +38,8 @@
 
 #include "instruments/tooling.hpp"
 
+#include "on_stack.hpp"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -441,8 +443,8 @@ namespace rubinius {
 
     CompiledFile* cf = CompiledFile::load(stream);
     if(cf->magic != "!RBIX") throw std::runtime_error("Invalid file");
-    if(signature_ > 0) {
-      if(cf->version != signature_) throw BadKernelFile(file);
+    if((signature_ > 0 && cf->version != signature_) || cf->sum != "x") {
+      throw BadKernelFile(file);
     }
 
     cf->execute(state);
@@ -635,5 +637,22 @@ namespace rubinius {
     start_signals();
     run_file(root + "/loader.rbc");
 
+    state->global_lock().take();
+
+    Object* loader = G(rubinius)->get_const(state, state->symbol("Loader"));
+    if(loader->nil_p()) {
+      std::cout << "Unable to find loader!\n";
+      exit(127);
+    }
+
+    OnStack<1> os(state, loader);
+
+    Object* inst = loader->send(state, 0, state->symbol("new"));
+
+    OnStack<1> os2(state, inst);
+
+    inst->send(state, 0, state->symbol("main"));
+
+    state->global_lock().drop();
   }
 }

@@ -1,11 +1,15 @@
 Daedalus.blueprint do |i|
   gcc = i.gcc!
 
-  gcc.cflags << "-Ivm -Ivm/test/cxxtest -I. -I/usr/local/include -I/opt/local/include "
+  system_includes = "-I/usr/local/include -I/opt/local/include"
+
+  gcc.cflags << "-Ivm -Ivm/test/cxxtest -I. "
   gcc.cflags << "-pipe -Wall -fno-omit-frame-pointer"
   gcc.cflags << "-ggdb3 -Werror"
   gcc.cflags << "-DRBX_PROFILER"
   gcc.cflags << "-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
+
+  gcc.cflags << Rubinius::BUILD_CONFIG[:user_cflags]
 
   if ENV['DEV']
     gcc.cflags << "-O0"
@@ -44,6 +48,9 @@ Daedalus.blueprint do |i|
   case RUBY_PLATFORM
   when /linux/i
     gcc.ldflags << '-Wl,--export-dynamic' << "-lrt" << "-lcrypt" << "-ldl" << "-lpthread"
+  when /freebsd/i
+    gcc.ldflags << '-lcrypt' << '-pthread' << '-rdynamic'
+    make = "gmake"
   when /openbsd/i
     gcc.ldflags << '-lcrypto' << '-pthread' << '-lssl' << "-rdynamic" << "-Wl,--export-dynamic"
     make = "gmake"
@@ -154,7 +161,10 @@ Daedalus.blueprint do |i|
     l.cflags = ["-Ivm/external_libs/udis86"]
     l.objects = [l.file("libudis86/.libs/libudis86.a")]
     l.to_build do |x|
-      x.command "./configure" unless File.exists?("Makefile")
+      unless File.exists?("Makefile") and File.exists?("libudis86/Makefile")
+        x.command "./configure"
+      end
+
       x.command make
     end
   end
@@ -165,6 +175,8 @@ Daedalus.blueprint do |i|
   gcc.add_library gdtoa
   gcc.add_library onig
   gcc.add_library ltm
+
+  gcc.cflags << system_includes + " "
 
   if Rubinius::BUILD_CONFIG[:windows]
     winp = i.external_lib "vm/external_libs/winpthreads" do |l|

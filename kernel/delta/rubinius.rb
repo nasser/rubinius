@@ -1,5 +1,11 @@
 module Rubinius
-  Terminal = STDIN.tty?
+  begin
+    is_tty = STDIN.tty?
+  rescue IOError
+    is_tty = false
+  end
+
+  Terminal = is_tty
   AtExit = []
 
   @add_method_hook = Rubinius::Hook.new
@@ -13,7 +19,7 @@ module Rubinius
       raise TypeError, "'#{mod.inspect}' is not a class/module"
     end
 
-    tbl = mod.constants_table
+    tbl = mod.constant_table
     if !tbl.key?(name)
       # Create the class
       sup = Object unless sup
@@ -59,8 +65,23 @@ module Rubinius
       raise TypeError, "'#{mod.inspect}' is not a class/module"
     end
 
-    tbl = mod.constants_table
-    if !tbl.key?(name)
+    tbl = mod.constant_table
+    found = tbl.key?(name)
+
+    # Object has special behavior, we check it's included
+    # modules also
+    if !found and mod.equal? Object
+      check = mod.direct_superclass
+
+      while check
+        tbl = check.constant_table
+        found = tbl.key?(name)
+        break if found
+        check = check.direct_superclass
+      end
+    end
+
+    if !found
       # Create the module
       obj = Module.new
       obj.set_name_if_necessary name, mod
@@ -219,23 +240,6 @@ module Rubinius
     Signal.run_handler(sig)
   end
 
-  def self.jit(meth)
-    cm = meth.executable
-
-    return unless cm.respond_to? :jit_now
-
-    unless status = cm.jit_now
-      puts "AOT: unable to compile #{meth}"
-    end
-
-    return status
-  end
-
-  def self.jit_soon(meth)
-    cm = meth.executable
-    cm.jit_soon
-  end
-
   def self.version
     extra = ""
 
@@ -245,7 +249,6 @@ module Rubinius
       if jit.include? :inline_generic
         extra << "I"
       end
-
     end
 
     str = "rubinius #{VERSION} (#{RUBY_VERSION} #{BUILD_REV[0..7]} #{RUBY_RELEASE_DATE}"
@@ -288,10 +291,6 @@ module Rubinius
     Compiler.compile name
   end
 
-  class AccessVariable
-    attr_reader :name
-  end
-
   def self.pack_to_int(obj)
     Rubinius::Type.coerce_to obj, Integer, :to_int
   end
@@ -314,7 +313,19 @@ module Rubinius
   def self.pack_to_float(obj)
     Float(obj)
   end
-end
 
-# A wierd place for it, but it works.
-RUBY_DESCRIPTION = Rubinius.version
+  ##
+  # API Status: official
+  #
+  # Return the absolute path to the file that contains
+  # the current method. This works like __FILE__, but returns
+  # the file that require/load resolved directly to, providing
+  # an absolute path to the file.
+  #
+  # Returns nil if there is no file, such as inside eval.
+  #
+  def self.current_file
+    ss = Rubinius::StaticScope.of_sender
+    return ss.absolute_active_path
+  end
+end

@@ -8,7 +8,8 @@ module Rubinius
 
         sprinter = new(format)
 
-        format.data.instance_variable_set(:@cached_sprinter, Tuple[format.dup, sprinter])
+        format.data.instance_variable_set(:@cached_sprinter,
+                                          Tuple[format.dup, sprinter])
 
         sprinter
       end
@@ -636,6 +637,14 @@ module Rubinius
 
       class StringAtom < Atom
         def string_justify
+          # by default, f_space changes the padding introduced
+          # by justify_width, but for string, we want to go
+          # ahead and actually ignore it not have it count
+          # against the justification space width.
+          if @f_space
+            @full_leader_size -= 1
+          end
+
           justify_width
 
           if precision?
