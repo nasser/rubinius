@@ -215,7 +215,10 @@ module Daedalus
 
     def shared(path, files)
       @log.show "LIB", path
-      @log.command "#{@path} -shared -W1,soname,#{File.basename(path)} -install_name #{Rubinius::BUILD_CONFIG[:lib_path]}/#{File.basename(path)} #{files.join(' ')} -o #{path} #{@libraries.join(' ')} #{@ldflags.join(' ')}"
+      cmd = "#{@path} -shared -Wl,-soname,#{File.basename(path)}"
+      cmd = cmd + " -install_name #{Rubinius::BUILD_CONFIG[:lib_path]}/#{File.basename(path)}" if RUBY_PLATFORM =~ /darwin/i
+      cmd = cmd + " #{files.join(' ')} -o #{path} #{@libraries.join(' ')} #{@ldflags.join(' ')}"
+      @log.command cmd
     end
 
     def static(path, files)
