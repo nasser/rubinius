@@ -7,7 +7,7 @@ if ENV["RUBYLIB"]
 end
 
 # Wipe out CDPATH, it interferes with building in some cases,
-# see http://github.com/evanphx/rubinius/issues#issue/555
+# see http://github.com/rubinius/rubinius/issues#issue/555
 if ENV["CDPATH"]
   ENV.delete("CDPATH")
 end
@@ -98,6 +98,17 @@ task :default => %w[build vm:test] do
   end
 
   sh "bin/mspec ci --background --agent"
+end
+
+task :github do
+  cur = `git config remote.origin.url`.strip
+  if cur == "git://github.com/evanphx/rubinius.git"
+    sh "git config remote.origin.url git://github.com/rubinius/rubinius.git"
+    puts "\nSwitch to git://github.com/rubinius/rubinius.git"
+  else
+    sh "git config remote.origin.url git@github.com:rubinius/rubinius.git"
+    puts "\nSwitch to github.com:rubinius/rubinius.git"
+  end
 end
 
 # See vm.rake for more information

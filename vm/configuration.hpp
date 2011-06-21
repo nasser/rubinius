@@ -15,6 +15,7 @@ namespace rubinius {
     config::Bool    gc_immix_debug;
     config::Bool    gc_honor_start;
     config::Bool    gc_autopack;
+    config::Integer gc_marksweep_threshold;
 
     // JIT/Interpreter
     config::Bool    dynamic_interpreter_enabled;
@@ -55,8 +56,10 @@ namespace rubinius {
 
     // defaults
     static const int default_gc_bytes = 1048576 * 3;
-    static const int default_gc_large_object = 2700;
+    static const int default_gc_large_object = 50 * 1024;
     static const int default_gc_lifetime = 3;
+    static const int default_gc_marksweep_threshold = (10 * 1024 * 1024);
+
     static const int default_jit_dump_code = 0;
     static const int default_jit_call_til_compile = 4000;
     static const int default_jit_max_method_size = 2048;
@@ -72,6 +75,8 @@ namespace rubinius {
       , gc_immix_debug(this,  "gc.immix.debug")
       , gc_honor_start(this,  "gc.honor_start", false)
       , gc_autopack(this,     "gc.autopack", true)
+      , gc_marksweep_threshold(this, "gc.marksweep_threshold",
+                               default_gc_marksweep_threshold)
 
       , dynamic_interpreter_enabled(this, "interpreter.dynamic")
       , jit_dump_code(this,   "jit.dump_code", default_jit_dump_code)
@@ -113,7 +118,7 @@ namespace rubinius {
           "The size (in bytes) of the large object threshold");
 
       gc_lifetime.set_description(
-          "How many young GC cycles an object lives before promoption");
+          "How many young GC cycles an object lives before promotion");
 
       gc_autotune.set_description(
           "Set whether or not the GC should adjust itself for performance");
@@ -123,6 +128,9 @@ namespace rubinius {
 
       gc_autopack.set_description(
           "Set whether or not objects should be backed tightly in memory");
+
+      gc_marksweep_threshold.set_description(
+          "The number of bytes allocated before the marksweep GC region is collected");
 
       jit_dump_code.set_description(
           "1 == show simple IR, 2 == show optimized IR, 4 == show machine code");
@@ -164,7 +172,7 @@ namespace rubinius {
           "Print out whenever the JIT is removing unused code");
 
       jit_check_debugging.set_description(
-          "Allow JIT'd methods to deoptimize if there is a debugging request");
+          "Allow JITd methods to deoptimize if there is a debugging request");
 
       capi_global_flush.set_description(
           "Flush all CAPI handles at CAPI call boundaries");

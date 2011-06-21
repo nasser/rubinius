@@ -160,6 +160,12 @@ namespace rubinius {
 
     int fd = 2;
 
+    if(getenv("RBX_PAUSE_ON_CRASH")) {
+      std::cerr << "\n========== CRASH (" << getpid();
+      std::cerr << "), pausing for 60 seconds to attach debugger\n";
+      sleep(60);
+    }
+
     // If there is a report_path setup..
     if(report_path[0]) {
       fd = open(report_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
@@ -286,6 +292,26 @@ namespace rubinius {
     signal(SIGUSR2, quit_handler);
   }
 
+  void Environment::load_vm_options(int argc, char**argv) {
+    for(int i=1; i < argc; i++) {
+      char* arg = argv[i];
+
+      if(strcmp(arg, "--") == 0) {
+        break;
+      }
+
+      if(strncmp(arg, "-X", 2) == 0) {
+        config_parser.import_line(arg + 2);
+
+      // If we hit the first non-option, bail.
+      } else if(arg[0] != '-') {
+        break;
+      }
+    }
+
+    config_parser.update_configuration(config);
+  }
+
   void Environment::load_argv(int argc, char** argv) {
     Array* os_ary = Array::create(state, argc);
     for(int i = 0; i < argc; i++) {
@@ -298,23 +324,24 @@ namespace rubinius {
     G(rubinius)->set_const(state, "OS_STARTUP_DIR",
         String::create(state, getcwd(buf, MAXPATHLEN)));
 
-    bool process_xflags = true;
     state->set_const("ARG0", String::create(state, argv[0]));
 
     Array* ary = Array::create(state, argc - 1);
     int which_arg = 0;
+    bool skip_xflags = true;
+
     for(int i=1; i < argc; i++) {
       char* arg = argv[i];
 
-      if(arg[0] != '-' || strcmp(arg, "--") == 0) {
-        process_xflags = false;
+      if(strcmp(arg, "--") == 0) {
+        skip_xflags = false;
+      } else if(strncmp(arg, "-X", 2) == 0) {
+        if(skip_xflags) continue;
+      } else if(arg[1] != '-') {
+        skip_xflags = false;
       }
 
-      if(process_xflags && strncmp(arg, "-X", 2) == 0) {
-        config_parser.import_line(arg + 2);
-      } else {
-        ary->set(state, which_arg++, String::create(state, arg)->taint(state));
-      }
+      ary->set(state, which_arg++, String::create(state, arg)->taint(state));
     }
 
     state->set_const("ARGV", ary);
@@ -332,8 +359,7 @@ namespace rubinius {
         e = b;
         while(*e && !isspace(*e)) e++;
 
-        int len;
-        if((len = e - b) > 0) {
+        if((e - b) > 0) {
           if(strncmp(b, "-X", 2) == 0) {
             *e = 0;
             config_parser.import_line(b + 2);
@@ -346,9 +372,6 @@ namespace rubinius {
     }
 
     // Now finish up with the config
-
-    config_parser.update_configuration(config);
-
     if(config.print_config > 1) {
       std::cout << "========= Configuration =========\n";
       config.print(true);
@@ -625,6 +648,7 @@ namespace rubinius {
     state->set_stack_start(&i);
 
     load_platform_conf(root);
+    load_vm_options(argc_, argv_);
     boot_vm();
     load_argv(argc_, argv_);
 
