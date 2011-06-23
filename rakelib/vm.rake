@@ -192,7 +192,7 @@ end
 
 task 'vm/test/runner' => GENERATED do
   blueprint = Daedalus.load "rakelib/blueprint.rb"
-  blueprint.build "vm/test/runner", @parallel_job
+  blueprint.build "vm/test/runner", @parallel_jobs
 end
 
 # Generate files for instructions and interpreters
