@@ -107,4 +107,5 @@ compile_ext "gdbm", :ignore_fail => true, :deps => ["Makefile"]
 compile_ext "sdbm", :deps => ["Makefile"]
 
 compile_ext "profiler", :dir => "lib/tooling/profiler", 
-                        :deps => ["Makefile"]
+                        :deps => ["Makefile"],
+			:ignore_fail => true
