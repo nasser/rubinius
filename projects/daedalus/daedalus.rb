@@ -63,6 +63,7 @@ module Daedalus
     end
 
     def command(cmd)
+      verbose cmd
       system cmd
       if $?.exitstatus != 0
         STDOUT.puts "Error: #{cmd}"
@@ -222,8 +223,23 @@ module Daedalus
     end
 
     def static(path, files)
+      require 'fileutils'
+      rm_f(path)
+      files.each_with_index { |f,i|
+        if f.end_with? '.a'
+        then
+          a = File.expand_path(f)
+          # TODO use a safe temp dir instead
+          tmpdir = File.join('.tmp_objs',File.basename(f,'.a'))
+          rm_rf(tmpdir)
+          mkdir_p(tmpdir)
+          @log.command "cd #{tmpdir} && #{@archiver} x #{a}"
+          files[i] = Dir.glob(File.join(tmpdir,'*.*'))
+        end
+      }
+      files.flatten!
       @log.show "AR", path
-      @log.command "#{@archiver} rcs #{path} #{files.reverse.join(' ')}"
+      @log.command "#{@archiver} rcs #{path} #{files.join(' ')}"
     end
 
     def calculate_deps(path)

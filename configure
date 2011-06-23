@@ -806,6 +806,78 @@ int main() { return tgetnum(""); }
       @llvm_configure = ""
     end
 
+################################################
+# Update ldflags for static linking against rubinius
+# based on rakelib/blueprint.rb
+
+  @vm_ldflags = ["-lstdc++", "-lm"]
+
+  # FIXME this should not exist.
+  @vm_ldflags << "-L/usr/local/lib" << "-L/opt/local/lib"
+
+  # TODO: Fix with Platform object
+  case RUBY_PLATFORM
+  when /linux/i
+    @vm_ldflags << '-Wl,--export-dynamic' << "-lrt" << "-lcrypt" << "-ldl" << "-lpthread"
+  when /freebsd/i
+    @vm_ldflags << '-lcrypt' << '-pthread' << '-rdynamic'
+  when /openbsd/i
+    @vm_ldflags << '-lcrypto' << '-pthread' << '-lssl' << "-rdynamic" << "-Wl,--export-dynamic"
+  when /haiku/i
+    @vm_ldflags << "-ldl" << "-lnetwork"
+  when /bsd/i
+    @vm_ldflags << "-lcrypt" << "-rdynamic"
+  when /mingw|win32/i
+    @vm_ldflags << "-lws2_32"
+  else
+    @vm_ldflags << "-ldl" << "-lpthread"
+  end
+
+  if RUBY_PLATFORM =~ /bsd/ and @defines.include?('HAS_EXECINFO')
+    @vm_ldflags << "-lexecinfo"
+  end
+
+################################################
+# Append LLVM configuration in rbconfig.rb
+# based on rakelib/blueprint.rb
+
+    case @llvm
+    when :prebuilt, :svn
+      conf = "vm/external_libs/llvm/Release/bin/llvm-config"
+      flags = `#{@perl} #{conf} --cflags`.strip.split(/\s+/)
+      flags.delete_if { |x| x.index("-O") == 0 || x.index("-I") == 0 }
+      flags.delete_if { |x| x =~ /-D__STDC/ }
+      flags << "-Ivm/external_libs/llvm/include" << "-DENABLE_LLVM"
+      @llvm_cflags  = flags.join(' ')
+      @llvm_ldflags = `#{@perl} #{conf} --ldflags`.strip
+      @llvm_libs    = `#{@perl} #{conf} --libs`.strip
+      # TODO check that flags are correct for Windows
+    when :config
+      conf = @llvm_configure
+      flags = `#{@perl} #{conf} --cflags`.strip.split(/\s+/)
+      flags.delete_if { |x| x.index("-O") == 0 }
+      flags.delete_if { |x| x =~ /-D__STDC/ }
+      flags << "-DENABLE_LLVM"
+      @llvm_cflags  = flags.join(' ')
+      @llvm_ldflags = `#{@perl} #{conf} --ldflags`.strip
+      @llvm_libs    = `#{@perl} #{conf} --libs`.strip
+    when :no
+      # nothing, not using LLVM
+      @llvm_cflags  = ''
+      @llvm_ldflags = ''
+      @llvm_libs    = ''
+    else
+      STDERR.puts "Unsupported LLVM configuration: #{@llvm}"
+      raise "get out"
+    end
+
+    @vm_ldflags << @llvm_ldflags unless @llvm_ldflags.empty?
+    @vm_ldflags << @llvm_libs unless @llvm_libs.empty?
+
+################################################
+
+    @vm_ldflags = @vm_ldflags.join(' ')
+
     File.open @config, "w" do |f|
       f.puts <<-EOC
 module Rubinius
@@ -816,6 +888,10 @@ module Rubinius
     :build_perl     => "#{@perl}",
     :llvm           => :#{@llvm},
     :llvm_configure => "#{@llvm_configure}",
+    :llvm_cflags    => "#{@llvm_cflags}",
+    :llvm_ldflags   => "#{@llvm_ldflags}",
+    :llvm_libs      => "#{@llvm_libs}",
+    :vm_ldflags     => "#{@vm_ldflags}",
     :cc             => "#{@cc}",
     :cxx            => "#{@cxx}",
     :user_cflags    => "#{@user_cflags}",

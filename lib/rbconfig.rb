@@ -42,7 +42,7 @@ module RbConfig
   CONFIG["ruby_version"]       = "$(MAJOR).$(MINOR)"
   CONFIG["RUBY_SO_NAME"]       = "rubinius-#{Rubinius::VERSION}"
   CONFIG["rubyhdrdir"]         = "#{Rubinius::HDR_PATH}"
-  CONFIG["LIBS"]               = ""
+  CONFIG["LIBS"]               = "-lrt -lcrypt"
 
   sitedir                      = Rubinius::SITE_PATH
   sitelibdir                   = sitedir
@@ -150,13 +150,21 @@ module RbConfig
   CONFIG["EXTOUT"]             = ".ext"
   CONFIG["ARCHFILE"]           = ""
   CONFIG["RDOCTARGET"]         = ""
-  CONFIG["LIBRUBY_A"]          = "librubinius-static.a"
+  CONFIG["LIBRUBY_A"]          = "librubinius-static.$(LIBEXT)"
   CONFIG["LIBRUBY_SO"]         = "librubinius.$(DLEXT)"
   CONFIG["LIBRUBY_ALIASES"]    = "lib$(RUBY_SO_NAME).$(DLEXT)"
   CONFIG["LIBRUBY"]            = "$(LIBRUBY_SO)"
   CONFIG["LIBRUBYARG"]         = "$(LIBRUBYARG_STATIC)"
-  CONFIG["LIBRUBYARG_STATIC"]  = ""
-  CONFIG["LIBRUBYARG_SHARED"]  = ""
+  CONFIG["LIBRUBYARG_SHARED"] = "-Wl,-R -Wl,$(libdir) -L$(libdir) -lrubinius"
+  CONFIG["LIBRUBYARG_STATIC"] = []
+  CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--whole-archive -lrubinius-static -Wl,--no-whole-archive"
+  CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--start-group"
+  if f = Rubinius::BUILD_CONFIG[:vm_ldflags]
+    CONFIG["LIBRUBYARG_STATIC"] << "#{f}"
+  end
+  CONFIG["LIBRUBYARG_STATIC"] << "$(LIBS)"
+  CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--end-group"
+  CONFIG["LIBRUBYARG_STATIC"]  = CONFIG["LIBRUBYARG_STATIC"].join(' ')
   CONFIG["configure_args"]     = ""
   CONFIG["ALLOCA"]             = ""
   CONFIG["LIBEXT"]             = "a"
