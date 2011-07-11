@@ -3,7 +3,6 @@
 
 #include "vmmethod.hpp"
 #include "unwind_info.hpp"
-#include "jit_state.h"
 #include "stack_variables.hpp"
 #include "builtin/variable_scope.hpp"
 #include "dispatch.hpp"
@@ -209,7 +208,7 @@ namespace rubinius {
     }
 
     CallFrame* top_ruby_frame() {
-      // Skip over any natime method frames.
+      // Skip over any native method frames.
       CallFrame* cf = this;
 
       while(cf->native_method_p()) {
