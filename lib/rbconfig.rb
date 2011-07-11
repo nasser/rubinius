@@ -162,7 +162,7 @@ module RbConfig
   if f = Rubinius::BUILD_CONFIG[:vm_ldflags]
     CONFIG["LIBRUBYARG_STATIC"] << "#{f}"
   end
-  CONFIG["LIBRUBYARG_STATIC"] << "$(LIBS)"
+  CONFIG["LIBRUBYARG_STATIC"] << CONFIG["LIBS"]
   CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--end-group"
   CONFIG["LIBRUBYARG_STATIC"]  = CONFIG["LIBRUBYARG_STATIC"].join(' ')
   CONFIG["configure_args"]     = ""
