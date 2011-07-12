@@ -153,7 +153,7 @@ module RbConfig
   CONFIG["LIBRUBY_A"]          = "librubinius-static.$(LIBEXT)"
   CONFIG["LIBRUBY_SO"]         = "librubinius.$(DLEXT)"
   CONFIG["LIBRUBY_ALIASES"]    = "lib$(RUBY_SO_NAME).$(DLEXT)"
-  CONFIG["LIBRUBY"]            = "$(LIBRUBY_SO)"
+  CONFIG["LIBRUBY"]            = "$(LIBRUBY_A)"
   CONFIG["LIBRUBYARG"]         = "$(LIBRUBYARG_STATIC)"
   CONFIG["LIBRUBYARG_SHARED"] = "-Wl,-R -Wl,$(libdir) -L$(libdir) -lrubinius"
   CONFIG["LIBRUBYARG_STATIC"] = []
