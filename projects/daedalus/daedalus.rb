@@ -216,9 +216,20 @@ module Daedalus
 
     def shared(path, files)
       @log.show "LIB", path
-      cmd = "#{@path} -shared -Wl,-soname,#{File.basename(path)}"
-      cmd = cmd + " -install_name #{Rubinius::BUILD_CONFIG[:lib_path]}/#{File.basename(path)}" if RUBY_PLATFORM =~ /darwin/i
-      cmd = cmd + " #{files.join(' ')} -o #{path} #{@libraries.join(' ')} #{@ldflags.join(' ')}"
+      cmd = "#{@path}"
+      case RUBY_PLATFORM
+      when  /darwin/i
+        cmd << " -dynamiclib"
+        cmd << " -install_name #{Rubinius::BUILD_CONFIG[:lib_path]}/#{File.basename(path)}"
+#       # TODO Handle other platforms shared library flags
+#       when /windows/i
+#         cmd << SPECIFIC_WINDOWS_FLAGS
+#       when /bsd/i
+#         cmd << SPECIFIC_BSD_FLAGS
+      else
+        cmd << " -shared -Wl,-soname,#{File.basename(path)}"
+      end
+      cmd << " #{files.join(' ')} -o #{path} #{@libraries.join(' ')} #{@ldflags.join(' ')}"
       @log.command cmd
     end
 
