@@ -188,6 +188,9 @@ task 'vm/vm' => GENERATED do
   ]
 
   blueprint.build tasks, @parallel_jobs
+
+  copy_file "vm/#{Rubinius::BUILD_CONFIG[:shared_lib_name]}", "lib/#{Rubinius::BUILD_CONFIG[:shared_lib_name]}"
+  copy_file "vm/#{Rubinius::BUILD_CONFIG[:static_lib_name]}", "lib/#{Rubinius::BUILD_CONFIG[:static_lib_name]}"
 end
 
 task 'vm/test/runner' => GENERATED do
