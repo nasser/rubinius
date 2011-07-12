@@ -244,8 +244,8 @@ module Daedalus
           tmpdir = File.join('.tmp_objs',File.basename(f,'.a'))
           rm_rf(tmpdir)
           mkdir_p(tmpdir)
-          @log.command "cd #{tmpdir} && #{@archiver} x #{a}"
-          files[i] = Dir.glob(File.join(tmpdir,'*.*'))
+          files[i] =   `cd #{tmpdir} && #{@archiver} -t #{a}`.split.map{ |f| File.join(tmpdir,f) }
+          @log.command "cd #{tmpdir} && #{@archiver} -x #{a}"
         end
       }
       files.flatten!
