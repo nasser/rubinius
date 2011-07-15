@@ -244,10 +244,9 @@ module Daedalus
           tmpdir = File.join('.tmp_objs',File.basename(f,'.a'))
           rm_rf(tmpdir)
           mkdir_p(tmpdir)
-          files[i] =   `cd #{tmpdir} && #{@archiver} t #{a}`
-            .split($/)
-            .reject { |fn| fn =~ /__\.SYMDEF/ }
-            .map    { |fn| '"' + File.join(tmpdir,fn) + '"' }
+          files[i] = (`cd #{tmpdir} && #{@archiver} t #{a}`).split($/)
+          files[i].reject! { |fn| fn =~ /__\.SYMDEF/ }
+          files[i].map! { |fn| '"' + File.join(tmpdir,fn) + '"' }
           @log.command "cd #{tmpdir} && #{@archiver} x #{a}"
         end
       }
