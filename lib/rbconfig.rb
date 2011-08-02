@@ -166,22 +166,23 @@ module RbConfig
   CONFIG["LIBRUBY"]            = "$(LIBRUBY_A)"
   CONFIG["LIBRUBYARG"]         = "$(LIBRUBYARG_STATIC)"
   CONFIG["LIBRUBYARG_SHARED"] = "-Wl,-R -Wl,$(libdir) -L$(libdir) -lrubinius"
+  
   CONFIG["LIBRUBYARG_STATIC"] = []
-  if RUBY_PLATFORM !~ /darwin/
+  if RUBY_PLATFORM =~ /darwin/
+    CONFIG["LIBRUBYARG_STATIC"] << "-force_load $(libdir)/$(LIBRUBY_A)"
+  else
     CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--whole-archive -lrubinius-static -Wl,--no-whole-archive"
     CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--start-group"
-    if f = Rubinius::BUILD_CONFIG[:vm_ldflags]
-      CONFIG["LIBRUBYARG_STATIC"] << "#{f}"
-    end
-    CONFIG["LIBRUBYARG_STATIC"] << CONFIG["LIBS"]
-    CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--end-group"
-  else
-    if f = Rubinius::BUILD_CONFIG[:vm_ldflags]
-      CONFIG["LIBRUBYARG_STATIC"] << "#{f}"
-    end
-    CONFIG["LIBRUBYARG_STATIC"] << CONFIG["LIBS"]
+  end
+  if f = Rubinius::BUILD_CONFIG[:vm_ldflags]
+    CONFIG["LIBRUBYARG_STATIC"] << "#{f}"
+  end
+  CONFIG["LIBRUBYARG_STATIC"] << CONFIG["LIBS"]
+  if RUBY_PLATFORM !~ /darwin/
+    CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--end-group" 
   end
   CONFIG["LIBRUBYARG_STATIC"]  = CONFIG["LIBRUBYARG_STATIC"].join(' ')
+  
   CONFIG["configure_args"]     = ""
   CONFIG["ALLOCA"]             = ""
   CONFIG["LIBEXT"]             = "a"
