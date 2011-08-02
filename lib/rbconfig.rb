@@ -42,7 +42,11 @@ module RbConfig
   CONFIG["ruby_version"]       = "$(MAJOR).$(MINOR)"
   CONFIG["RUBY_SO_NAME"]       = "rubinius-#{Rubinius::VERSION}"
   CONFIG["rubyhdrdir"]         = "#{Rubinius::HDR_PATH}"
-  CONFIG["LIBS"]               = "-lrt -lcrypt"
+  if RUBY_PLATFORM =~ /darwin/
+    # CONFIG["LIBS"]               = "-lcrypto"
+  else
+    CONFIG["LIBS"]               = "-lrt -lcrypt"
+  end
 
   sitedir                      = Rubinius::SITE_PATH
   sitelibdir                   = sitedir
@@ -110,10 +114,16 @@ module RbConfig
   # used by mkmf to compile extensions, be sure PIC is in
   # there
   CONFIG["CFLAGS"]             = "-ggdb3 -O2 -fPIC"
+
+  if RUBY_PLATFORM =~ /darwin/
+    CONFIG["CFLAGS"] << " -DHAVE_BN_RAND_RANGE"
+    CONFIG["CFLAGS"] << " -DHAVE_BN_PSEUDO_RAND_RANGE"
+  end
+
   if user = Rubinius::BUILD_CONFIG[:user_cflags]
     CONFIG["CFLAGS"] << " #{user}" unless user.empty?
   end
-
+  
   CONFIG["LDFLAGS"]            = ""
   if user = Rubinius::BUILD_CONFIG[:user_ldflags]
     CONFIG["LDFLAGS"] << " #{user}" unless user.empty?
@@ -157,13 +167,20 @@ module RbConfig
   CONFIG["LIBRUBYARG"]         = "$(LIBRUBYARG_STATIC)"
   CONFIG["LIBRUBYARG_SHARED"] = "-Wl,-R -Wl,$(libdir) -L$(libdir) -lrubinius"
   CONFIG["LIBRUBYARG_STATIC"] = []
-  CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--whole-archive -lrubinius-static -Wl,--no-whole-archive"
-  CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--start-group"
-  if f = Rubinius::BUILD_CONFIG[:vm_ldflags]
-    CONFIG["LIBRUBYARG_STATIC"] << "#{f}"
+  if RUBY_PLATFORM !~ /darwin/
+    CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--whole-archive -lrubinius-static -Wl,--no-whole-archive"
+    CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--start-group"
+    if f = Rubinius::BUILD_CONFIG[:vm_ldflags]
+      CONFIG["LIBRUBYARG_STATIC"] << "#{f}"
+    end
+    CONFIG["LIBRUBYARG_STATIC"] << CONFIG["LIBS"]
+    CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--end-group"
+  else
+    if f = Rubinius::BUILD_CONFIG[:vm_ldflags]
+      CONFIG["LIBRUBYARG_STATIC"] << "#{f}"
+    end
+    CONFIG["LIBRUBYARG_STATIC"] << CONFIG["LIBS"]
   end
-  CONFIG["LIBRUBYARG_STATIC"] << CONFIG["LIBS"]
-  CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--end-group"
   CONFIG["LIBRUBYARG_STATIC"]  = CONFIG["LIBRUBYARG_STATIC"].join(' ')
   CONFIG["configure_args"]     = ""
   CONFIG["ALLOCA"]             = ""
