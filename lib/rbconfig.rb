@@ -168,12 +168,15 @@ module RbConfig
   CONFIG["LIBRUBYARG_SHARED"] = "-Wl,-R -Wl,$(libdir) -L$(libdir) -lrubinius"
   
   CONFIG["LIBRUBYARG_STATIC"] = []
-  if RUBY_PLATFORM =~ /darwin[0-9]{2}\./
+  case RUBY_PLATFORM
+  when /darwin[0-9]{2}\./
     # only match darwin platforms 10.0 and up, which coresponds to Mac OS 10.6
     # and later. 10.5 and earlier (darwin 9.0 and below) did not have the
     # -force_load needed here.
     # http://en.wikipedia.org/wiki/Darwin_(operating_system)#Release_history
     CONFIG["LIBRUBYARG_STATIC"] << "-force_load $(libdir)/$(LIBRUBY_A)"
+  when /darwin/
+    
   else
     CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--whole-archive -lrubinius-static -Wl,--no-whole-archive"
     CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--start-group"
