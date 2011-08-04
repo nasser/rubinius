@@ -165,31 +165,8 @@ module RbConfig
   CONFIG["LIBRUBY_ALIASES"]    = "lib$(RUBY_SO_NAME).$(DLEXT)"
   CONFIG["LIBRUBY"]            = "$(LIBRUBY_A)"
   CONFIG["LIBRUBYARG"]         = "$(LIBRUBYARG_STATIC)"
-  CONFIG["LIBRUBYARG_SHARED"] = "-Wl,-R -Wl,$(libdir) -L$(libdir) -lrubinius"
-  
-  CONFIG["LIBRUBYARG_STATIC"] = []
-  case RUBY_PLATFORM
-  when /darwin[0-9]{2}\./
-    # only match darwin platforms 10.0 and up, which coresponds to Mac OS 10.6
-    # and later. 10.5 and earlier (darwin 9.0 and below) did not have the
-    # -force_load needed here.
-    # http://en.wikipedia.org/wiki/Darwin_(operating_system)#Release_history
-    CONFIG["LIBRUBYARG_STATIC"] << "-force_load $(libdir)/$(LIBRUBY_A)"
-  when /darwin/
-    
-  else
-    CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--whole-archive -lrubinius-static -Wl,--no-whole-archive"
-    CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--start-group"
-  end
-  if f = Rubinius::BUILD_CONFIG[:vm_ldflags]
-    CONFIG["LIBRUBYARG_STATIC"] << "#{f}"
-  end
-  CONFIG["LIBRUBYARG_STATIC"] << CONFIG["LIBS"]
-  if RUBY_PLATFORM !~ /darwin/
-    CONFIG["LIBRUBYARG_STATIC"] << "-Wl,--end-group" 
-  end
-  CONFIG["LIBRUBYARG_STATIC"]  = CONFIG["LIBRUBYARG_STATIC"].join(' ')
-  
+  CONFIG["LIBRUBYARG_SHARED"] = ""
+  CONFIG["LIBRUBYARG_STATIC"] = ""
   CONFIG["configure_args"]     = ""
   CONFIG["ALLOCA"]             = ""
   CONFIG["LIBEXT"]             = "a"
